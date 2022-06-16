@@ -1,10 +1,10 @@
 const createError = require('http-errors');
 const express = require('express');
-//middleware for uploading files
 const fileUpload = require('express-fileupload');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
+const exphbs = require('express-handlebars');
 const cors = require("cors");
 
 const indexRouter = require('./routes/index');
@@ -22,9 +22,14 @@ app.use(fileUpload({
 //makes uploads folder publicly accessible
 app.use(express.static('uploads'));
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+
+//Handlebars Middleware
+app.set('view engine', 'handlebars');
+app.engine('handlebars', exphbs.engine({
+  layoutsDir: __dirname + '/views/layouts',
+}));
+
+app.set('views', './views');
 
 app.use(cors());
 app.use(logger('dev'));
@@ -36,6 +41,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use("/testAPI", testAPIRouter);
+
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));

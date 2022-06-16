@@ -13,8 +13,15 @@
     "express-fileupload": "^1.4.0",
     "fs": "0.0.1-security",
     "http-errors": "~1.6.3",
-    "jade": "~1.11.0",
     "lodash": "^4.17.21",
     "morgan": "~1.9.1"
+  },
+  "devDependencies": {
+    "body-parser": "^1.20.0",
+    "express-handlebars": "^6.0.6",
+    "formidable": "^2.0.1",
+    "method-override": "^3.0.0",
+    "mongoose": "^6.3.5",
+    "node-thumbnail": "^0.15.0"
   }
 }
