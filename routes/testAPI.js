@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const methodOverride = require('method-override');
+const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const { Console } = require('console');
 //module for creating thumbnails
 const thumb = require('node-thumbnail').thumb;
 
@@ -32,6 +34,7 @@ router.get('/', function (req, res, next) {
 router.post('/upload', async function (req, res) {
       
     let sampleFile;
+    let uploadPath;
 
     let mimetype;
     const allowedFiles = ['image', 'pdf', 'text', 'msword', 'wordprocessingml', 'ms-excel', 'spreadsheetml'];
@@ -42,7 +45,9 @@ router.post('/upload', async function (req, res) {
     console.log(req.files.path);
     // The name of the input field (i.e. "sampleFile") is used to retrieve the uploaded file
     sampleFile = req.files.inputGroupFile02;
+    uploadPath = './public/uploads/' + sampleFile.name;
     mimetype = req.files.inputGroupFile02.mimetype;
+
     for (let i = 0; i < allowedFiles.length; i++) {
         if (mimetype.indexOf(allowedFiles[i]) !== -1) {
 
@@ -55,6 +60,7 @@ router.post('/upload', async function (req, res) {
                   }).then(() => console.log('Preview created.'))
                   .catch(e => console.log(e.toString()));
 
+                //preparing a new data for db
                 const newUser = {
                     filename: sampleFile.name,
                     file: sampleFile,
@@ -62,6 +68,13 @@ router.post('/upload', async function (req, res) {
                     size: sampleFile.size,
                     downloaded: 0
                 }
+                // Place the file in a folder on server
+                sampleFile.mv(uploadPath, function(err) {
+                    if (err) {
+                        return res.status(500).send(err);
+                    }      
+                });
+
                 await new Document(newUser)
                     .save()
                     .then(doc => {
@@ -70,8 +83,9 @@ router.post('/upload', async function (req, res) {
                         } else {
                             return res.status(204).redirect(`${req.protocol}://${req.hostname}/`);
                         }
-                    })
-                
+                    });
+
+
   
         }
         
@@ -95,6 +109,16 @@ router.get('/uploads', async (req, res) => {
 
 //Delete a Document
 router.delete('/uploads/:id', (req, res) => {
+    let filename;
+    Document.findOne({"_id": req.params.id})
+    .then(doc => {
+        filename = doc.filename;
+        fs.unlink(`./public/uploads/${filename}`, (err) => {
+            if (err) throw err;
+            console.log(`${filename} was deleted`);
+          })
+    } );
+    
     Document.deleteOne({"_id": req.params.id})
         .then(() => {
             return res.status(200).redirect('http://localhost:3000');
@@ -105,12 +129,12 @@ router.delete('/uploads/:id', (req, res) => {
 
 //Download a document
 router.get('/uploads/:id', (req, res) => {
-    console.log();
-    Document.find({"_id": req.params.id})
-    .then(result => {
-
-        res.download(result[0].filename);
-    })
+    let filename;
+    Document.findOne({"_id": req.params.id})
+        .then(doc =>  {
+            filename = doc.filename;
+        });
+    res.download(`./public/uploads/${filename}`);
 })
 
 module.exports = router;
