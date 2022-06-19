@@ -59,7 +59,8 @@ router.post('/upload', async function (req, res) {
                     filename: sampleFile.name,
                     file: sampleFile,
                     extention: ext,
-                    size: sampleFile.size
+                    size: sampleFile.size,
+                    downloaded: 0
                 }
                 await new Document(newUser)
                     .save()
@@ -94,16 +95,22 @@ router.get('/uploads', async (req, res) => {
 
 //Delete a Document
 router.delete('/uploads/:id', (req, res) => {
-    console.log(req.method);
     Document.deleteOne({"_id": req.params.id})
         .then(() => {
             return res.status(200).redirect('http://localhost:3000');
+        }, () => {
+            return res.status(500).send();
         })
 })
 
 //Download a document
-router.get('/uploads/:name/:extention', (req, res) => {
-    res.download(`./public/uploads/${req.params.name}.${req.params.extention}`);
+router.get('/uploads/:id', (req, res) => {
+    console.log();
+    Document.find({"_id": req.params.id})
+    .then(result => {
+
+        res.download(result[0].filename);
+    })
 })
 
 module.exports = router;

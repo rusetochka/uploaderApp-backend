@@ -21,6 +21,9 @@ const DocumentSchema = new Schema({
     }, 
     size: {
         type: Number
+    },
+    downloaded: {
+        type: Number
     }
 });
 
