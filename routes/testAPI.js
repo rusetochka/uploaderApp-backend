@@ -42,9 +42,11 @@ router.post('/upload', async function (req, res) {
     if (!req.files || Object.keys(req.files).length === 0) {
         return res.status(400).send('No files were uploaded.');
     }
-    console.log(req.files.path);
+
     // The name of the input field (i.e. "sampleFile") is used to retrieve the uploaded file
     sampleFile = req.files.inputGroupFile02;
+    
+    
     uploadPath = './public/uploads/' + sampleFile.name;
     mimetype = req.files.inputGroupFile02.mimetype;
 
@@ -54,11 +56,7 @@ router.post('/upload', async function (req, res) {
                 //get the extention of a file
                 const arr = sampleFile.name.split('.');
                 const ext = arr[arr.length - 1];
-                thumb({
-                    source: path.join(sampleFile.name), 
-                    destination: './public/uploads',
-                  }).then(() => console.log('Preview created.'))
-                  .catch(e => console.log(e.toString()));
+                
 
                 //preparing a new data for db
                 const newUser = {
@@ -110,6 +108,7 @@ router.get('/uploads', async (req, res) => {
 //Delete a Document
 router.delete('/uploads/:id', (req, res) => {
     let filename;
+    //delete file from server
     Document.findOne({"_id": req.params.id})
     .then(doc => {
         filename = doc.filename;
@@ -119,6 +118,7 @@ router.delete('/uploads/:id', (req, res) => {
           })
     } );
     
+    //delete file from the database
     Document.deleteOne({"_id": req.params.id})
         .then(() => {
             return res.status(200).redirect('http://localhost:3000');
@@ -133,8 +133,33 @@ router.get('/uploads/:id', (req, res) => {
     Document.findOne({"_id": req.params.id})
         .then(doc =>  {
             filename = doc.filename;
+            res.download(`./public/uploads/${filename}`);
+            doc.downloaded += 1;
+            doc.save();
         });
-    res.download(`./public/uploads/${filename}`);
+    
+});
+
+//Download a document from the shared link
+router.get('/uploads/:id/:timestamp', (req, res) => {
+    let timestamp = req.params.timestamp;
+    let currentDate = new Date().getTime();
+    const diff = (currentDate - timestamp)/60000;
+    if(diff > 5) {
+        res.status(500).send('Your link is not available anymore.');
+    } else {
+        let filename;
+    Document.findOne({"_id": req.params.id})
+        .then(doc =>  {
+            filename = doc.filename;
+            res.download(`./public/uploads/${filename}`);
+            doc.downloaded += 1;
+            doc.save();
+        });
+    }
+
+    
 })
+
 
 module.exports = router;
