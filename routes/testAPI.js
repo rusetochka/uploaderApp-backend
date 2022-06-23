@@ -4,8 +4,6 @@ const methodOverride = require('method-override');
 const fs = require('fs');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
-//module for creating thumbnails
-
 
 
 //connect to mongoose
@@ -32,9 +30,11 @@ function typeValidation(type) {
     const allowedFiles = ['image', 'pdf', 'text', 'msword', 'wordprocessingml', 'ms-excel', 'spreadsheetml'];
     for (let i = 0; i < allowedFiles.length; i++) {
         if (type.indexOf(allowedFiles[i]) !== -1) {
+            console.log('valid file');
             return true;
         }
     }
+    console.log('not valid file');
     return false;
 }
 
@@ -56,6 +56,13 @@ router.post('/upload', async function (req, res) {
 
     //Uploading a single file
     if (!sampleFile.length) {
+
+        //check if the file with that name already exists in DB
+        const existingFiles = fs.existsSync('./public/uploads/' + sampleFile.name);
+        if (existingFiles) {
+            return res.send('File with such name already exists. Please, choose different name.');
+        }
+
         uploadPath = './public/uploads/' + sampleFile.name;
         mimetype = sampleFile.mimetype;
 
@@ -75,31 +82,38 @@ router.post('/upload', async function (req, res) {
                 }
 
                 // Place the file in a folder on server
-                sampleFile.mv(uploadPath, function (err) {
+                await sampleFile.mv(uploadPath, function (err) {
                     if (err) {
                         return res.status(500).send(err);
                     }
                 });
 
-                //preparing a thumbnail
-
                 //Place file info into database
                 await new Document(newUser)
                     .save()
-                    .then(doc => {
+                    .then(() => {
                         if (req.hostname === 'localhost') {
                             return res.redirect('http://localhost:3000')
                         } else {
-                            return res.status(204).redirect(`${req.protocol}://${req.hostname}/`);
+                            return res.redirect(`${req.protocol}://${req.hostname}/`);
                         }
                     });
+        } else {
+            //if filetype is not valid
+            return res.status(403).send('This type of file is not allowed.');
         }
-        //if filetype is not valid
-        return res.status(403).send('This type of file is not allowed.');
+        
     } else {
 
         //uploading multiple files
         for(let i = 0; i < sampleFile.length; i++) {
+
+            //check if the file with that name already exists in DB
+            const existingFiles = fs.existsSync('./public/uploads/' + sampleFile[i].name);
+            if (existingFiles) {
+                return res.send('File with such name already exists. Please, choose different name.');
+            }
+
             uploadPath = './public/uploads/' + sampleFile[i].name;
             mimetype = sampleFile[i].mimetype;
 
@@ -125,23 +139,19 @@ router.post('/upload', async function (req, res) {
                   }
               });
 
-              //preparing a thumbnail
 
               //Place file info into database
-              await new Document(newUser)
-                  .save()
-                  .then(doc => {
-                      if (req.hostname === 'localhost') {
-                          return res.redirect('http://localhost:3000')
-                      } else {
-                          return res.status(204).redirect(`${req.protocol}://${req.hostname}/`);
-                      }
-                  });  
+              new Document(newUser)
+                  .save()  
             } else {
                 //if filetype is not valid
                 return res.status(403).send('This type of file is not allowed.');
             }
-            
+        }
+        if (req.hostname === 'localhost') {
+            return res.redirect('http://localhost:3000')
+        } else {
+            return res.status(204).redirect(`${req.protocol}://${req.hostname}/`);
         }
     }
 });
