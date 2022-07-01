@@ -4,6 +4,7 @@ const methodOverride = require('method-override');
 const fs = require('fs');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const { send } = require('process');
 
 
 //connect to mongoose
@@ -180,12 +181,18 @@ router.delete('/uploads/:id', (req, res) => {
                 if (err) throw err;
                 console.log(`${filename} was deleted`);
             })
+        },  () => {
+            return res.status(404).send('The document not found in the Database')
         });
 
     //delete file from the database
     Document.deleteOne({ "_id": req.params.id })
         .then(() => {
-            return res.status(200).redirect('http://localhost:3000');
+            if (req.hostname === 'localhost') {
+                return res.redirect('http://localhost:3000')
+            } else {
+                return res.redirect(`${req.protocol}://${req.hostname}/`);
+            }
         }, () => {
             return res.status(500).send();
         })
@@ -200,6 +207,8 @@ router.get('/uploads/:id', (req, res) => {
             res.download(`./public/uploads/${filename}`);
             doc.downloaded += 1;
             doc.save();
+        }, (err) => {
+            return res.status(404).send('The document not found.')
         });
 
 });
